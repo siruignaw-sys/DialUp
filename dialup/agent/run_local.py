@@ -21,7 +21,7 @@ def main():
     p.add_argument("--headed", action="store_true", help="show the browser window")
     p.add_argument("--fake-site", action="store_true", help="start on the local backup bus site")
     p.add_argument("--max-steps", type=int, default=25)
-    p.add_argument("--max-cost", type=float, default=0.50)
+    p.add_argument("--max-cost", type=float, default=0.15)
     p.add_argument("--max-seconds", type=int, default=300)
     a = p.parse_args()
 

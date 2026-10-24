@@ -55,9 +55,14 @@ def check(task, steps, now=None):
     if started and (now - started).total_seconds() > max_seconds:
         return "stop", "timeout"
 
-    spent = sum(float(s.get("cost_usd") or 0) for s in steps)
-    spent = max(spent, float(task.get("cost_usd") or 0))
-    if spent >= float(task.get("max_cost_usd") or 0.50):
+    # Budget: stop BEFORE a step would cross the cap. Reserve room for the next step
+    # plus the closing spoken summary, each estimated at the cost of a recent step
+    # (steps get pricier as the conversation grows, so use the larger of last/average).
+    costs = [float(s.get("cost_usd") or 0) for s in steps]
+    spent = max(sum(costs), float(task.get("cost_usd") or 0))
+    budget = float(task.get("max_cost_usd") or 0.50)
+    step_estimate = max(costs[-1], sum(costs) / len(costs)) if costs else 0.0
+    if spent + 2 * step_estimate >= budget:
         return "stop", "over_budget"
 
     browser = [s for s in steps if s.get("action") in BROWSER_ACTIONS]

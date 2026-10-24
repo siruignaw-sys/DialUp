@@ -71,6 +71,25 @@ def test_over_budget():
     assert check(task(), steps, NOW) == ("stop", "over_budget")
 
 
+def test_stops_before_crossing_budget():
+    # $0.40 spent, steps cost $0.05: next step + summary would reach $0.50 -> stop now
+    steps = [step("navigate", "u", f"p{i}", "x", cost=0.05) for i in range(8)]
+    assert check(task(), steps, NOW) == ("stop", "over_budget")
+
+
+def test_room_for_next_step_and_summary_continues():
+    # $0.30 spent, steps cost $0.05: $0.40 projected, under $0.50 -> keep going
+    steps = [step("navigate", "u", f"p{i}", "x", cost=0.05) for i in range(6)]
+    assert check(task(), steps, NOW) == ("continue", None)
+
+
+def test_growing_step_cost_uses_latest_step():
+    # cheap early steps, expensive recent one: average would underestimate
+    steps = [step("navigate", "u", f"p{i}", "x", cost=0.01) for i in range(5)]
+    steps.append(step("click", "#3", "p9", "x", cost=0.20))
+    assert check(task(), steps, NOW) == ("stop", "over_budget")
+
+
 def test_max_steps():
     steps = [step("navigate", "u", f"p{i}", "x") for i in range(5)]
     assert check(task(max_steps=5), steps, NOW) == ("stop", "max_steps")
