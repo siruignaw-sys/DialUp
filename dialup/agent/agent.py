@@ -240,7 +240,10 @@ async def run_task(task_id, deps=None, headless=True, client=None):
             step_cost = _cost(resp.usage)
             cost += step_cost
             tool = next((b for b in resp.content if getattr(b, "type", "") == "tool_use"), None)
-            messages.append({"role": "assistant", "content": resp.content})
+            # Keep only text + tool_use in history. Thinking blocks are signed against the exact
+            # history, and _shrink_old_pages rewrites old pages, which would invalidate them.
+            kept = [b for b in resp.content if getattr(b, "type", "") in ("text", "tool_use")]
+            messages.append({"role": "assistant", "content": kept or resp.content})
             if tool is None:
                 # Model answered in plain text instead of calling a tool: nudge it, at most twice.
                 nudges += 1
