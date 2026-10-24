@@ -14,6 +14,12 @@ from types import SimpleNamespace
 
 from anthropic import AsyncAnthropic
 
+try:  # pick up ANTHROPIC_API_KEY etc. from a .env file at the repo root, if present
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 from dialup.agent.browser import Browser, format_observation
 from dialup.agent.supervisor import check
 
@@ -92,6 +98,7 @@ def system_prompt(language):
 They cannot see a screen. You act in a real web browser, one tool call per turn.
 
 How to work:
+- Always respond with exactly one tool call, never plain text.
 - Refer to page elements by their number in ELEMENTS. Numbers change after every action.
 - If you don't know which site to use, search with DuckDuckGo (you start there).
 - Fill the `progress` field honestly; leave it empty when the last action got you nothing new.
@@ -224,15 +231,25 @@ async def run_task(task_id, deps=None, headless=True, client=None):
         messages = [{"role": "user", "content": [{"type": "text", "text":
                      f"CALLER'S REQUEST: {task['request']}\n\nCurrent page:\n{format_observation(obs)}"}]}]
 
+        nudges = 0
         while True:
             resp = await client.messages.create(
                 model=MODEL, max_tokens=1024, system=system, tools=TOOLS,
-                tool_choice={"type": "any", "disable_parallel_tool_use": True},
+                tool_choice={"type": "auto", "disable_parallel_tool_use": True},
                 messages=messages)
             step_cost = _cost(resp.usage)
             cost += step_cost
-            tool = next(b for b in resp.content if getattr(b, "type", "") == "tool_use")
+            tool = next((b for b in resp.content if getattr(b, "type", "") == "tool_use"), None)
             messages.append({"role": "assistant", "content": resp.content})
+            if tool is None:
+                # Model answered in plain text instead of calling a tool: nudge it, at most twice.
+                nudges += 1
+                if nudges > 2:
+                    raise RuntimeError("model kept replying without calling a tool")
+                messages.append({"role": "user", "content": [{"type": "text", "text":
+                                 "You must respond by calling exactly one tool."}]})
+                continue
+            nudges = 0
 
             name, args = tool.name, dict(tool.input or {})
             result_text, obs, terminal = await _execute(name, args, browser, deps, task_id)
