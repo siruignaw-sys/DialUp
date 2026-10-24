@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Sign in required (demo trap page)</title></head>
+<body style="font-family: system-ui; max-width: 480px; margin: 60px auto">
+<h1>Please sign in to continue</h1>
+<p>You must be logged in to view schedules.</p>
+<label for="u">Email</label><input id="u" placeholder="Email">
+<label for="p">Password</label><input id="p" type="password" placeholder="Password">
+<button onclick="document.getElementById('e').textContent='Invalid email or password.'">Sign in</button>
+<p id="e" style="color: #b00"></p>
+<p><a href="login_wall.html">Forgot password?</a></p>
+</body>
+</html>

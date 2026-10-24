@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Coastline Bus Co. (demo site)</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; }
+  label { display: block; margin-top: 10px; }
+  input, select { padding: 6px; width: 100%; box-sizing: border-box; }
+  button { margin-top: 12px; padding: 8px 14px; }
+  .trip { border: 1px solid #ccc; padding: 10px; margin-top: 10px; border-radius: 6px; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<h1>Coastline Bus Co.</h1>
+<p><em>Fictional demo site for Dial-Up testing.</em></p>
+
+<section id="search">
+  <label for="from">From</label>
+  <select id="from"><option>San Diego</option><option>Los Angeles</option><option>Irvine</option></select>
+  <label for="to">To</label>
+  <select id="to"><option>Los Angeles</option><option>San Diego</option><option>Irvine</option></select>
+  <label for="date">Date</label>
+  <select id="date"><option>Today</option><option>Tomorrow</option></select>
+  <button id="go" onclick="search()">Search buses</button>
+</section>
+
+<section id="results" class="hidden"></section>
+
+<section id="hold" class="hidden">
+  <h2>Hold a seat</h2>
+  <p id="holdtrip"></p>
+  <label for="name">Passenger full name</label>
+  <input id="name" placeholder="Passenger full name">
+  <button onclick="hold()">Hold seat (free, 24 hours)</button>
+</section>
+
+<section id="done" class="hidden"></section>
+
+<script>
+const TRIPS = [
+  {time: "7:15 AM", price: 24, seats: 12},
+  {time: "9:40 AM", price: 12, seats: 3},
+  {time: "1:05 PM", price: 18, seats: 20},
+  {time: "6:30 PM", price: 15, seats: 0},
+];
+let chosen = null;
+function show(id) { document.getElementById(id).classList.remove("hidden"); }
+function hide(id) { document.getElementById(id).classList.add("hidden"); }
+function search() {
+  const f = document.getElementById("from").value, t = document.getElementById("to").value;
+  const d = document.getElementById("date").value;
+  const r = document.getElementById("results");
+  if (f === t) { r.innerHTML = "<p>Origin and destination must be different.</p>"; show("results"); return; }
+  r.innerHTML = `<h2>${d}: ${f} to ${t}</h2>` + TRIPS.map((x, i) =>
+    `<div class="trip">Departs ${x.time} · $${x.price} · ${x.seats ? x.seats + " seats left" : "SOLD OUT"}
+     ${x.seats ? `<button onclick="pick(${i})">Select ${x.time}</button>` : ""}</div>`).join("");
+  hide("search"); show("results");
+}
+function pick(i) {
+  chosen = TRIPS[i];
+  document.getElementById("holdtrip").textContent = `Departs ${chosen.time}, $${chosen.price}`;
+  hide("results"); show("hold");
+}
+function hold() {
+  const n = document.getElementById("name").value.trim();
+  if (!n) { alert("Name required"); return; }
+  const code = "CB" + Math.floor(1000 + Math.random() * 9000);
+  const d = document.getElementById("done");
+  d.innerHTML = `<h2>Seat held!</h2><p>${n}, your seat on the ${chosen.time} bus ($${chosen.price}) is held. Confirmation code ${code}. Pay at the station.</p>`;
+  hide("hold"); show("done");
+}
+</script>
+</body>
+</html>
